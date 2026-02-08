@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BISTRO FLOW: GLOBAL EDITION</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root { 
+            --bar: #d97706; --booth: #0284c7; --main: #059669; --suite: #9333ea; --patio: #475569; 
+            --bg: #f1f5f9; --sidebar: #ffffff; --text-main: #0f172a; --text-sub: #475569; --card: #ffffff; --border: #cbd5e1;
+            --panel-bg: #f8fafc;
+        }
+        
+        body.dark-mode { 
+            --bg: #020617; --sidebar: #0f172a; --text-main: #f8fafc; --text-sub: #94a3b8; --card: #1e293b; --border: #334155;
+            --panel-bg: #1e293b;
+        }
+
+        body { background: var(--bg); color: var(--text-main); font-family: 'Inter', sans-serif; height: 100vh; overflow: hidden; display: flex; flex-direction: column; transition: all 0.2s ease-in-out; }
+        header { background: var(--sidebar); border-bottom: 1px solid var(--border); color: var(--text-main); }
+        aside { background: var(--sidebar); border-color: var(--border); color: var(--text-main); transition: all 0.2s; }
+        #floor-plan { display: flex; flex-wrap: wrap; justify-content: center; align-content: flex-start; gap: 1rem; flex: 1; padding: 1.5rem; overflow-y: auto; }
+        #patio-zone { width: 100%; border-top: 2px dashed var(--border); padding: 1.5rem; display: flex; justify-content: center; }
+        .control-panel { background: var(--panel-bg); border: 1px solid var(--border); border-radius: 1.5rem; padding: 1rem; }
+        .table-unit { min-width: 140px; flex: 1 1 180px; max-width: 260px; aspect-ratio: 1.2/1; position: relative; transition: all 0.3s; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 24px; background: var(--card); border: 4px solid transparent; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); }
+        .lobby-card { background: var(--card) !important; color: var(--text-main); border: 1px solid var(--border); }
+        .lobby-card-vip { border-width: 3px !important; box-shadow: 0 4px 15px rgba(0,0,0,0.15); transform: scale(1.02); }
+        .critic-label { color: white !important; font-weight: 900 !important; text-shadow: 0 1px 2px rgba(0,0,0,0.5); }
+        .glow-BAR { border-color: var(--bar); }
+        .glow-BOOTH { border-color: var(--booth); border-left-width: 14px; border-right-width: 14px; }
+        .glow-DINING { border-color: var(--main); }
+        .glow-SUITE { border-color: var(--suite); }
+        .glow-PATIO { border-color: var(--patio); width: 100%; max-width: 900px; aspect-ratio: 5/1; border-style: dotted; }
+        .progress-box { width: 70%; height: 8px; background: #e2e8f0; border-radius: 10px; margin-top: 10px; overflow: hidden; border: 1px solid var(--border); }
+        .dark-mode .progress-box { background: #000; }
+        .progress-bar { height: 100%; transition: width 1s linear; }
+        select, input { background: var(--bg) !important; color: var(--text-main) !important; border: 1px solid var(--border) !important; border-radius: 0.5rem; padding: 0.25rem; }
+        .btn-toggle-off { background: #fee2e2; color: #991b1b; border: 2px solid #ef4444; }
+        .btn-toggle-on { background: #dcfce7; color: #166534; border: 2px solid #22c55e; }
+        .dark-mode .btn-toggle-off { background: #450a0a; color: #fca5a5; border-color: #991b1b; }
+        .dark-mode .btn-toggle-on { background: #064e3b; color: #6ee7b7; border-color: #059669; }
+        .card-label { color: var(--text-sub); font-weight: 700; font-size: 9px; text-transform: uppercase; }
+        .card-title { color: #64748b; font-weight: 900; } 
+        #notification-toast { position: fixed; bottom: 20px; right: 20px; padding: 1rem 2rem; background: #ef4444; color: white; border-radius: 1rem; font-weight: 800; transform: translateY(150%); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 9999; box-shadow: 0 10px 25px rgba(239, 68, 68, 0.4); pointer-events: none; }
+        #notification-toast.show { transform: translateY(0); }
+        .theme-btn { display: flex; align-items: center; justify-content: center; gap: 8px; background: var(--bg); border: 2px solid var(--border); color: var(--text-main); transition: all 0.3s; }
+    </style>
+</head>
+<body id="game-body">
+
+    <div id="notification-toast">⚠️ CAPACITY REACHED</div>
+
+    <header class="p-4 flex justify-between items-center z-50">
+        <h1 class="text-2xl font-black tracking-tighter">
+            BISTRO <span class="text-amber-600 underline decoration-indigo-500">FLOW</span> 
+            <span id="header-op-name" class="ml-4 text-indigo-600 border-l border-slate-300 dark:border-white/20 pl-4 uppercase italic text-lg tracking-widest">OFFLINE</span>
+        </h1>
+        <div class="flex gap-10 font-mono text-right">
+            <div><span class="text-[9px] block opacity-60 font-bold uppercase">Capital</span><span id="score-text" class="text-2xl text-emerald-600 dark:text-emerald-400 font-bold">$1,000</span></div>
+            <div><span class="text-[9px] block opacity-60 font-bold uppercase">Shift</span><span id="timer-text" class="text-2xl text-amber-600 dark:text-amber-500 font-bold">05:00</span></div>
+        </div>
+    </header>
+
+    <main class="flex flex-1 overflow-hidden">
+        <aside class="w-80 p-4 border-r flex flex-col shadow-sm">
+            <h2 class="text-[10px] font-black uppercase opacity-60 mb-4 tracking-widest text-center">Party Queue</h2>
+            <div id="lobby-list" class="flex-1 space-y-3 overflow-y-auto pr-2"></div>
+            <div class="mt-4 control-panel">
+                <select id="build-type" class="w-full text-xs mb-2">
+                    <option value="BAR">BAR STATION</option>
+                    <option value="BOOTH">BOOTH STATION</option>
+                    <option value="DINING">MAIN STATION</option>
+                    <option value="SUITE">VIP SUITE</option>
+                </select>
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="text-[10px] card-label uppercase">Seats:</span>
+                    <input type="number" id="build-cap" value="4" class="flex-1 text-xs text-center">
+                </div>
+                <p id="build-price" class="text-center text-xs font-mono text-emerald-600 dark:text-emerald-400 font-bold mb-2">$9,000</p>
+                <button id="construct-btn" class="w-full py-3 bg-indigo-600 text-white rounded-xl font-black text-[10px] uppercase shadow-md">Construct</button>
+            </div>
+        </aside>
+
+        <section class="flex-1 flex flex-col">
+            <div id="floor-plan"></div>
+            <div id="patio-zone"></div>
+        </section>
+
+        <aside class="w-64 p-4 border-l flex flex-col gap-4 shadow-sm">
+            <h2 class="text-[10px] font-black uppercase opacity-60 text-center">System Control</h2>
+            <button id="theme-toggle-btn" class="theme-btn w-full py-3 rounded-xl text-[10px] font-black uppercase">
+                <span id="theme-icon">🌙</span> <span id="theme-text">Dark Mode</span>
+            </button>
+            <button id="clean-btn" class="btn-toggle-off py-5 rounded-2xl text-[10px] font-black uppercase">Quick Wash [OFF]</button>
+            <button id="surge-btn" class="btn-toggle-off py-5 rounded-2xl text-[10px] font-black uppercase">Shift Surge [OFF]</button>
+            <div class="mt-auto control-panel">
+                <div class="flex justify-between text-[11px] mb-1 font-bold"><span>Rev:</span><span id="stat-rev" class="text-emerald-600 dark:text-emerald-400">$0</span></div>
+                <div class="flex justify-between text-[11px] font-bold"><span>Exp:</span><span id="stat-exp" class="text-red-600">$0</span></div>
+            </div>
+        </aside>
+    </main>
+
+    <div id="start-screen" class="fixed inset-0 bg-slate-100 dark:bg-slate-950 z-[11000] flex items-center justify-center">
+        <div class="bg-white dark:bg-slate-900 p-12 rounded-[3rem] border border-slate-200 dark:border-white/10 text-center max-w-sm w-full shadow-2xl">
+            <div class="w-16 h-16 bg-amber-500 rounded-2xl mx-auto mb-6 flex items-center justify-center text-white font-black text-3xl">B</div>
+            <input type="text" id="op-name" placeholder="OPERATOR NAME" class="w-full p-4 rounded-xl mb-6 text-center font-bold outline-none border">
+            <button id="auth-btn" class="w-full py-4 bg-indigo-600 text-white rounded-xl font-black uppercase tracking-widest">Authorize</button>
+        </div>
+    </div>
+
+    <div id="audit-screen" class="fixed inset-0 bg-white/95 dark:bg-black/95 z-[10000] hidden items-center justify-center">
+        <div class="bg-white dark:bg-slate-900 p-12 rounded-[3rem] border border-slate-300 dark:border-white/10 max-w-lg w-full text-center">
+            <h2 class="text-3xl font-black italic mb-2">FISCAL AUDIT</h2>
+            <p id="audit-op-label" class="text-indigo-600 font-black uppercase mb-8"></p>
+            <div id="audit-details" class="text-left space-y-3 mb-10 font-mono text-sm border-t border-b py-4"></div>
+            <button onclick="location.reload()" class="w-full py-5 bg-indigo-600 text-white font-black uppercase rounded-2xl">New Shift</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDeQSmaXHZ7fR_YQ4kIzn7hiV3g4kxmTf4",
+            authDomain: "bistroflow-c27e6.firebaseapp.com",
+            projectId: "bistroflow-c27e6",
+            storageBucket: "bistroflow-c27e6.firebasestorage.app",
+            messagingSenderId: "130551151404",
+            appId: "1:130551151404:web:7ff8d3073d6eaf05160a89",
+            measurementId: "G-KSK5YTP6C4"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // --- GAME STATE ---
+        let score = 1000, time = 300, guests = [], active = false, opName = "";
+        let isCleaning = false, isSurge = false;
+        let stats = { revenue: 0, penalty: 0, engineering: 0, fines: 0 };
+
+        const SECTIONS = {
+            BAR: { color: 'var(--bar)', label: "BAR STATION" },
+            BOOTH: { color: 'var(--booth)', label: "BOOTH STATION" },
+            DINING: { color: 'var(--main)', label: "MAIN STATION" },
+            SUITE: { color: 'var(--suite)', label: "VIP SUITE" },
+            PATIO: { color: 'var(--patio)', label: "PATIO ZONE" }
+        };
+
+        let TABLES = [
+            { id: 1, type: 'BAR', cap: 2, parties: [], busing: 0 },
+            { id: 2, type: 'BOOTH', cap: 4, parties: [], busing: 0 },
+            { id: 3, type: 'DINING', cap: 6, parties: [], busing: 0 },
+            { id: 4, type: 'SUITE', cap: 4, parties: [], busing: 0 },
+            { id: 99, type: 'PATIO', cap: 12, parties: [], busing: 0 }
+        ];
+
+        // --- GLOBAL LEADERBOARD FUNCTIONS ---
+        async function saveToFirebase(name, val) {
+            try {
+                await addDoc(collection(db, "leaderboard"), {
+                    operator: name,
+                    score: val,
+                    date: new Date()
+                });
+            } catch (e) { console.error("Firebase Error:", e); }
+        }
+
+        async function fetchLeaderboard() {
+            const q = query(collection(db, "leaderboard"), orderBy("score", "desc"), limit(5));
+            const snap = await getDocs(q);
+            let html = `<div class="mt-6 border-t pt-4"><h3 class="text-[10px] font-black mb-2 uppercase opacity-50">Global Top Players</h3>`;
+            snap.forEach(doc => {
+                const d = doc.data();
+                html += `<div class="flex justify-between text-xs font-bold font-mono"><span>${d.operator}</span><span>$${Math.floor(d.score).toLocaleString()}</span></div>`;
+            });
+            return html + `</div>`;
+        }
+
+        // --- CORE ENGINE ---
+        function tick() {
+            if(!active) return;
+            time--;
+            if(isCleaning) { score -= 10; stats.engineering += 10; }
+            if(isSurge) { score -= 30; stats.engineering += 30; }
+            
+            guests.forEach((g, i) => {
+                g.patience -= g.decay;
+                if(g.patience <= 0) {
+                    const fine = g.isVIP ? 2000 : 500;
+                    score -= fine; stats.fines += fine;
+                    guests.splice(i, 1);
+                }
+            });
+
+            TABLES.forEach(t => {
+                if(t.busing > 0) t.busing -= (isCleaning ? 3 : 1);
+                t.parties.forEach((p, i) => {
+                    p.rem -= (isSurge ? 3 : 1);
+                    if(p.rem <= 0) {
+                        const payout = isSurge ? p.pay * 1.2 : p.pay;
+                        score += payout; stats.revenue += payout;
+                        t.parties.splice(i, 1);
+                        if(t.parties.length === 0) t.busing = 15;
+                    }
+                });
+            });
+            if(time <= 0) finalizeShift();
+            render();
+        }
+
+        async function finalizeShift() {
+            active = false;
+            document.getElementById('audit-screen').style.display = 'flex';
+            document.getElementById('audit-op-label').innerText = `OPERATOR: ${opName}`;
+            
+            const results = `
+                <div class="flex justify-between"><span>GROSS SALES</span><span class="text-emerald-600 font-bold">+$${Math.floor(stats.revenue).toLocaleString()}</span></div>
+                <div class="flex justify-between"><span>PREFERENCE LOSS</span><span class="text-red-600">-$${Math.floor(stats.penalty).toLocaleString()}</span></div>
+                <div class="flex justify-between font-bold border-b pb-2"><span>BAD REVIEWS</span><span class="text-red-600">-$${Math.floor(stats.fines).toLocaleString()}</span></div>
+                <div class="flex justify-between text-2xl font-black pt-4"><span>NET REVENUE</span><span class="text-indigo-600 font-black">$${Math.floor(score).toLocaleString()}</span></div>
+            `;
+            document.getElementById('audit-details').innerHTML = results + `<p class="text-center text-[10px] animate-pulse mt-4">SYNCING GLOBAL LEADERBOARD...</p>`;
+            
+            await saveToFirebase(opName, score);
+            const leaderHtml = await fetchLeaderboard();
+            document.getElementById('audit-details').innerHTML = results + leaderHtml;
+        }
+
+        // --- UI & CONTROLS ---
+        function render() {
+            document.getElementById('score-text').innerText = `$${Math.floor(score).toLocaleString()}`;
+            document.getElementById('stat-rev').innerText = `$${Math.floor(stats.revenue).toLocaleString()}`;
+            document.getElementById('stat-exp').innerText = `-$${Math.floor(stats.penalty + stats.engineering + stats.fines).toLocaleString()}`;
+            const m = Math.floor(time/60), s = time%60;
+            document.getElementById('timer-text').innerText = `${m}:${s.toString().padStart(2,'0')}`;
+
+            document.getElementById('lobby-list').innerHTML = guests.map(g => {
+                const prefColor = SECTIONS[g.pref].color;
+                const vipStyle = g.isVIP ? `background: ${prefColor} !important; border-color: ${prefColor} !important;` : '';
+                return `
+                <div class="p-3 rounded-xl border-l-4 lobby-card ${g.isVIP ? 'lobby-card-vip' : ''} shadow-sm" 
+                     style="border-left-color: ${prefColor}; ${vipStyle}" draggable="true" id="guest-${g.id}">
+                    <div class="flex justify-between mb-1">
+                        <span class="${g.isVIP ? 'critic-label' : 'card-title'} text-[10px] uppercase">${g.isVIP ? '💎 VIP CRITIC' : 'PARTY'}</span>
+                        <span class="${g.isVIP ? 'text-white font-black' : 'text-emerald-600 font-black'} text-[10px]">$${Math.floor(g.val)}</span>
+                    </div>
+                    <div class="flex justify-between mb-2 italic">
+                        <span class="${g.isVIP ? 'text-white opacity-80' : 'card-label'} text-[9px] font-bold">PREF: ${SECTIONS[g.pref].label}</span>
+                        <span class="${g.isVIP ? 'text-white opacity-80' : 'card-label'} text-[9px] font-bold">SIZE: ${g.size}P</span>
+                    </div>
+                    <div class="h-1 bg-black/20 rounded-full"><div class="h-full bg-red-500" style="width: ${g.patience}%"></div></div>
+                </div>`;
+            }).join('');
+
+            // Add Drag Events manually since it's inside a module
+            guests.forEach(g => {
+                const el = document.getElementById(`guest-${g.id}`);
+                if(el) el.addEventListener('dragstart', (e) => e.dataTransfer.setData('text', g.id));
+            });
+
+            const drawTable = (t) => {
+                const isOcc = t.parties.length > 0;
+                const busing = t.busing > 0;
+                const p = busing ? (t.busing/15)*100 : (isOcc ? (t.parties[0].rem/t.parties[0].total)*100 : 0);
+                const color = busing ? '#f59e0b' : (isOcc ? '#10b981' : '#64748b');
+                return `
+                <div class="table-unit glow-${t.type} ${isOcc ? 'opacity-100' : 'opacity-60'}" data-tid="${t.id}">
+                    <p class="card-label opacity-70 mb-1">${t.type}</p>
+                    <p class="text-2xl font-black mb-1">${t.parties.reduce((s,p)=>s+p.size,0)} <span class="text-xs opacity-50">/ ${t.cap}</span></p>
+                    ${(isOcc || busing) ? `<div class="progress-box"><div class="progress-bar" style="width:${p}%; background:${color}"></div></div>` : ''}
+                </div>`;
+            };
+            document.getElementById('floor-plan').innerHTML = TABLES.filter(t => t.type !== 'PATIO').map(drawTable).join('');
+            document.getElementById('patio-zone').innerHTML = TABLES.filter(t => t.type === 'PATIO').map(drawTable).join('');
+
+            // Re-attach drop listeners
+            document.querySelectorAll('.table-unit').forEach(el => {
+                el.addEventListener('dragover', (e) => e.preventDefault());
+                el.addEventListener('drop', (e) => {
+                    const gid = e.dataTransfer.getData('text');
+                    const tid = el.getAttribute('data-tid');
+                    handleDrop(gid, tid);
+                });
+            });
+        }
+
+        function handleDrop(gId, tId) {
+            const g = guests.find(x => x.id == gId);
+            const t = TABLES.find(x => x.id == tId);
+            if(!t || !g) return;
+            if(t.busing > 0) { showToast("⚠️ TABLE IS DIRTY"); return; }
+            if(t.type !== 'PATIO' && t.parties.length > 0) { showToast("⚠️ TABLE OCCUPIED"); return; }
+            if(t.parties.reduce((s,p) => s + p.size, 0) + g.size > t.cap) { showToast(`⚠️ TOO SMALL`); return; }
+            
+            let pay = g.val;
+            if(t.type !== g.pref && t.type !== 'PATIO') { pay *= 0.70; stats.penalty += (g.val * 0.30); }
+            t.parties.push({ ...g, rem: 40, total: 40, pay });
+            guests = guests.filter(x => x.id != gId);
+            render();
+        }
+
+        function spawn() {
+            if(!active) return;
+            const keys = ['BAR', 'BOOTH', 'DINING', 'SUITE'];
+            const pref = keys[Math.floor(Math.random() * keys.length)];
+            const isVIP = Math.random() < 0.20;
+            guests.push({ id: Date.now() + Math.random(), pref, isVIP, size: isVIP ? 2 : Math.floor(Math.random()*4)+1, val: isVIP ? 4500 : 800 + Math.floor(Math.random()*500), patience: 100, decay: isVIP ? 2.5 : 1.5 });
+            setTimeout(spawn, Math.random() * 4000 + 2000);
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('notification-toast');
+            toast.innerText = msg; toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2000);
+        }
+
+        // --- BUTTON EVENTS ---
+        document.getElementById('auth-btn').onclick = () => {
+            opName = document.getElementById('op-name').value.toUpperCase() || "VISITOR";
+            document.getElementById('header-op-name').innerText = opName;
+            document.getElementById('start-screen').style.display = 'none';
+            active = true;
+            setInterval(tick, 1000);
+            spawn();
+        };
+
+        document.getElementById('theme-toggle-btn').onclick = () => {
+            const isDark = document.body.classList.toggle('dark-mode');
+            document.getElementById('theme-icon').innerText = isDark ? "☀️" : "🌙";
+            document.getElementById('theme-text').innerText = isDark ? "Light Mode" : "Dark Mode";
+        };
+
+        document.getElementById('clean-btn').onclick = () => {
+            isCleaning = !isCleaning;
+            document.getElementById('clean-btn').className = isCleaning ? "btn-toggle-on py-5 rounded-2xl text-[10px] font-black uppercase" : "btn-toggle-off py-5 rounded-2xl text-[10px] font-black uppercase";
+            document.getElementById('clean-btn').innerText = isCleaning ? "Quick Wash [ON]" : "Quick Wash [OFF]";
+        };
+
+        document.getElementById('surge-btn').onclick = () => {
+            isSurge = !isSurge;
+            document.getElementById('surge-btn').className = isSurge ? "btn-toggle-on py-5 rounded-2xl text-[10px] font-black uppercase" : "btn-toggle-off py-5 rounded-2xl text-[10px] font-black uppercase";
+            document.getElementById('surge-btn').innerText = isSurge ? "Shift Surge [ON]" : "Shift Surge [OFF]";
+        };
+
+        document.getElementById('construct-btn').onclick = () => {
+            const type = document.getElementById('build-type').value;
+            const cap = parseInt(document.getElementById('build-cap').value);
+            const cost = 5000 + (cap * 1000);
+            if(score >= cost) {
+                score -= cost; stats.engineering += cost;
+                TABLES.push({ id: Date.now(), type, cap, parties: [], busing: 0 });
+                render();
+            } else { showToast("⚠️ NO FUNDS"); }
+        };
+
+        document.getElementById('build-cap').oninput = () => {
+            const cap = parseInt(document.getElementById('build-cap').value) || 0;
+            document.getElementById('build-price').innerText = `$${(5000 + cap*1000).toLocaleString()}`;
+        };
+    </script>
+</body>
+</html>
